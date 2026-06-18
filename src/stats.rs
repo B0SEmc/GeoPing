@@ -8,7 +8,7 @@ const COLOR_BLUE: &str = "\x1b[34m";
 const COLOR_GREEN: &str = "\x1b[32m";
 const COLOR_YELLOW: &str = "\x1b[33m";
 const COLOR_RED: &str = "\x1b[31m";
-const COLOR_CYAN: &str = "\x1b[36m";
+const COLOR_MAGENTA: &str = "\x1b[35m";
 
 const COLOR_BRIGHT_RED: &str = "\x1b[91m";
 const COLOR_BRIGHT_GREEN: &str = "\x1b[92m";
@@ -165,19 +165,29 @@ fn print_rtt_stats(rtt: &RttStats) {
 }
 
 fn print_jitter_stats(jitter: &JitterStats) {
+    let jitter_color = if jitter.jitter <= 5.0 {
+        COLOR_BRIGHT_GREEN
+    } else if jitter.jitter <= 10.0 {
+        COLOR_YELLOW
+    } else if jitter.jitter <= 20.0 {
+        COLOR_RED
+    } else {
+        COLOR_MAGENTA
+    };
+
     println!(
         "jitter {}{}(p95-p5){}{} = {}{:.3}{} ms (p95: {}{:.3}{} ms, p5: {}{:.3}{} ms)",
         COLOR_BOLD,
         COLOR_RESET,
         COLOR_BOLD,
         COLOR_RESET,
-        COLOR_CYAN,
+        jitter_color,
         jitter.jitter,
         COLOR_RESET,
         COLOR_BRIGHT_RED,
         jitter.p95,
         COLOR_RESET,
-        COLOR_BRIGHT_GREEN,
+        COLOR_GREEN,
         jitter.p5,
         COLOR_RESET
     );

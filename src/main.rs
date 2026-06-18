@@ -1,6 +1,6 @@
 mod ip;
-mod tcp;
 mod stats;
+mod tcp;
 
 use crate::ip::parse_target;
 use crate::tcp::ping_tcp;
