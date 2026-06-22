@@ -1,7 +1,10 @@
+mod formatter;
+mod icmp;
 mod ip;
 mod stats;
 mod tcp;
 
+use crate::icmp::ping_icmp;
 use crate::ip::parse_target;
 use crate::tcp::ping_tcp;
 use clap::{Parser, Subcommand};
@@ -100,6 +103,7 @@ async fn run_local_ping(cli: &Cli, target: &str) {
     let start_time = std::time::Instant::now();
     let result = match &config.protocol as &str {
         "tcp" => ping_tcp(&config).await,
+        "icmp" => ping_icmp(&config).await,
         _ => {
             println!("Error: Unsupported protocol: {}", config.protocol);
             std::process::exit(1);

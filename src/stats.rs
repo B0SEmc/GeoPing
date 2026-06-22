@@ -1,19 +1,11 @@
 use crate::PingArgs;
 use std::time::Duration;
 
-const COLOR_RESET: &str = "\x1b[0m";
-const COLOR_BOLD: &str = "\x1b[1m";
+use crate::formatter::{
+    COLOR_RESET, COLOR_BOLD, COLOR_BLUE, COLOR_GREEN, COLOR_YELLOW, COLOR_RED, COLOR_MAGENTA,
+    COLOR_BRIGHT_RED, COLOR_BRIGHT_GREEN, COLOR_BRIGHT_BLUE, COLOR_BRIGHT_MAGENTA,
+};
 
-const COLOR_BLUE: &str = "\x1b[34m";
-const COLOR_GREEN: &str = "\x1b[32m";
-const COLOR_YELLOW: &str = "\x1b[33m";
-const COLOR_RED: &str = "\x1b[31m";
-const COLOR_MAGENTA: &str = "\x1b[35m";
-
-const COLOR_BRIGHT_RED: &str = "\x1b[91m";
-const COLOR_BRIGHT_GREEN: &str = "\x1b[92m";
-const COLOR_BRIGHT_BLUE: &str = "\x1b[94m";
-const COLOR_BRIGHT_MAGENTA: &str = "\x1b[95m";
 
 struct RttStats {
     min: f64,
@@ -176,7 +168,7 @@ fn print_jitter_stats(jitter: &JitterStats) {
     };
 
     println!(
-        "jitter {}{}(p95-p5){}{} = {}{:.3}{} ms (p95: {}{:.3}{} ms, p5: {}{:.3}{} ms)",
+        "jitter {}{}(p95-p5){}{} = {}{:.3}{} ms (p5: {}{:.3}{} ms, p95: {}{:.3}{} ms)",
         COLOR_BOLD,
         COLOR_RESET,
         COLOR_BOLD,
@@ -185,10 +177,10 @@ fn print_jitter_stats(jitter: &JitterStats) {
         jitter.jitter,
         COLOR_RESET,
         COLOR_BRIGHT_RED,
-        jitter.p95,
+        jitter.p5,
         COLOR_RESET,
         COLOR_GREEN,
-        jitter.p5,
+        jitter.p95,
         COLOR_RESET
     );
 }
