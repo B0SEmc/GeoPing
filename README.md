@@ -19,7 +19,7 @@ While the standard `ping` command is limited to ICMP and measures latency from a
 Ensure you have Rust and Cargo installed. Then, clone the repository and build the project:
 
 ```bash
-git clone [https://github.com/b0semc/geoping.git](https://github.com/b0semc/geoping.git)
+git clone https://github.com/b0semc/geoping.git
 cd geoping
 cargo build --release
 
