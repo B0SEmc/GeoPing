@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 use std::time::Duration;
 
-// ANSI escape codes for terminal coloring
+// Color codes for terminal coloring
 pub const COLOR_RESET: &str = "\x1b[0m";
 pub const COLOR_BOLD: &str = "\x1b[1m";
 
