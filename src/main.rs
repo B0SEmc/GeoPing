@@ -70,33 +70,64 @@ async fn run_local_ping(cli: &Cli, target: &str) {
         warmup: cli.warmup,
     };
 
-    if let Ok(ip) = config.host.parse::<std::net::IpAddr>() {
-        let socket_addr = std::net::SocketAddr::new(ip, config.port);
-        println!(
-            "Locally Pinging {} using protocol {}",
-            socket_addr,
-            config.protocol.to_uppercase()
-        );
-    } else {
-        let resolved = tokio::net::lookup_host(format!("{}:{}", config.host, config.port))
-            .await
-            .ok()
-            .and_then(|mut addrs| addrs.next());
-
-        if let Some(addr) = resolved {
+    if config.protocol == "icmp" {
+        if let Ok(ip) = config.host.parse::<std::net::IpAddr>() {
             println!(
-                "Locally Pinging {} ({}) using protocol {}",
-                config.host,
-                addr,
+                "Locally Pinging {} using protocol {}",
+                ip,
                 config.protocol.to_uppercase()
             );
         } else {
+            let resolved = tokio::net::lookup_host(format!("{}:0", config.host))
+                .await
+                .ok()
+                .and_then(|mut addrs| addrs.next())
+                .map(|addr| addr.ip());
+
+            if let Some(ip) = resolved {
+                println!(
+                    "Locally Pinging {} ({}) using protocol {}",
+                    config.host,
+                    ip,
+                    config.protocol.to_uppercase()
+                );
+            } else {
+                println!(
+                    "Locally Pinging {} using protocol {}",
+                    config.host,
+                    config.protocol.to_uppercase()
+                );
+            }
+        }
+    } else {
+        if let Ok(ip) = config.host.parse::<std::net::IpAddr>() {
+            let socket_addr = std::net::SocketAddr::new(ip, config.port);
             println!(
-                "Locally Pinging {}:{} using protocol {}",
-                config.host,
-                config.port,
+                "Locally Pinging {} using protocol {}",
+                socket_addr,
                 config.protocol.to_uppercase()
             );
+        } else {
+            let resolved = tokio::net::lookup_host(format!("{}:{}", config.host, config.port))
+                .await
+                .ok()
+                .and_then(|mut addrs| addrs.next());
+
+            if let Some(addr) = resolved {
+                println!(
+                    "Locally Pinging {} ({}) using protocol {}",
+                    config.host,
+                    addr,
+                    config.protocol.to_uppercase()
+                );
+            } else {
+                println!(
+                    "Locally Pinging {}:{} using protocol {}",
+                    config.host,
+                    config.port,
+                    config.protocol.to_uppercase()
+                );
+            }
         }
     }
 
