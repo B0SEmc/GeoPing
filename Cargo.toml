@@ -7,3 +7,4 @@ edition = "2024"
 tokio = { version = "*", features = ["full"] }
 clap = { version = "*", features = ["derive"] }
 serde = { version = "*", features = ["derive"] }
+surge-ping = "*"
