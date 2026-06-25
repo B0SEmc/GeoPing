@@ -1,11 +1,13 @@
 mod formatter;
 mod icmp;
 mod ip;
+mod server;
 mod stats;
 mod tcp;
 
 use crate::icmp::ping_icmp;
 use crate::ip::parse_target;
+use crate::server::run_server;
 use crate::tcp::ping_tcp;
 use clap::{Parser, Subcommand};
 
@@ -25,7 +27,7 @@ struct Cli {
     command: Option<Commands>,
 
     #[arg(short = 'w', long, default_value = "0")]
-    warmup: usize,
+    warmup: Option<usize>,
 }
 
 #[derive(Subcommand)]
@@ -34,6 +36,9 @@ enum Commands {
     Server {
         #[arg(short, long, default_value_t = 3000)]
         port: u16,
+
+        #[arg(short = 't', long)]
+        token: Option<String>,
     },
     #[command(visible_aliases = ["distribute", "config", "m"])]
     Multi {
@@ -42,11 +47,19 @@ enum Commands {
     },
 }
 
+fn default_port() -> u16 {
+    80
+}
+
+#[derive(serde::Deserialize)]
 pub struct PingArgs {
+    #[serde(alias = "target")]
     pub host: String,
+    #[serde(default = "default_port")]
     pub port: u16,
     pub protocol: String,
-    pub warmup: usize,
+    pub warmup: Option<usize>,
+    pub count: Option<usize>,
 }
 
 async fn run_local_ping(cli: &Cli, target: &str) {
@@ -68,6 +81,7 @@ async fn run_local_ping(cli: &Cli, target: &str) {
         port,
         protocol: cli.protocol.clone(),
         warmup: cli.warmup,
+        count: None,
     };
 
     if config.protocol == "icmp" {
@@ -157,8 +171,9 @@ async fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Server { port }) => {
+        Some(Commands::Server { port, token }) => {
             println!("Starting Relay Server mode on port {}", port);
+            run_server(*port, token.clone()).await;
         }
         Some(Commands::Multi { config }) => {
             println!("Starting Orchestrator mode with file {}", config);

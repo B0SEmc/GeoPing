@@ -24,8 +24,16 @@ pub async fn ping_icmp(config: &PingArgs) -> Result<Vec<Option<Duration>>, std::
         .await;
     pinger.timeout(Duration::from_secs(5));
     let mut sequence = 0u16;
+    let mut count: usize = 0;
 
     loop {
+        count += 1;
+        if let Some(max_count) = config.count
+            && count > max_count
+        {
+            break;
+        }
+
         tokio::select! {
             _ = async {
                 let payload = [0u8; 56];

@@ -14,8 +14,16 @@ pub async fn ping_tcp(config: &PingArgs) -> Result<Vec<Option<Duration>>, std::i
         .ok_or_else(|| {
             std::io::Error::new(std::io::ErrorKind::NotFound, "Could not resolve host")
         })?;
+    let mut count: usize = 0;
 
     loop {
+        count += 1;
+        if let Some(max_count) = config.count
+            && count > max_count
+        {
+            break;
+        }
+
         tokio::select! {
             _ = async {
                 let start = Instant::now();
