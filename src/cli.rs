@@ -14,8 +14,29 @@ pub struct Cli {
 
     #[arg(short = 'w', long, default_value = "0")]
     pub warmup: Option<usize>,
+
+    #[command(subcommand)]
+    pub command: Option<Commands>,
 }
 
+#[derive(clap::Subcommand)]
+pub enum Commands {
+    #[command(visible_alias = "s")]
+    Server {
+        #[arg(short, long, default_value_t = 3000)]
+        port: u16,
+
+        #[arg(short = 't', long)]
+        token: Option<String>,
+    },
+    #[command(visible_aliases = ["distribute", "config", "m"])]
+    Multi {
+        #[arg(short, long, default_value = "config.toml")]
+        config: String,
+    },
+}
+
+#[derive(serde::Deserialize, Clone)]
 pub struct PingArgs {
     pub host: String,
     pub port: u16,

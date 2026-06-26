@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+axum = "*"
 tokio = { version = "*", features = ["full"] }
 clap = { version = "*", features = ["derive"] }
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
 surge-ping = "*"
+tokio-stream = "*"
+async-stream = "*"
