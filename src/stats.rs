@@ -1,4 +1,4 @@
-use crate::PingArgs;
+use crate::cli::PingArgs;
 use std::time::Duration;
 
 use crate::formatter::{
