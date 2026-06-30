@@ -186,7 +186,10 @@ pub async fn run_remote_ping(cli: &Cli, config_path: &str, target: &str) {
     let streams = build_streams(&client, &remotes, &ping_args);
 
     if remotes.len() > 1 {
+        println!("Remotely Pinging {} using protocol {} with {} servers", ping_args.host, ping_args.protocol.to_uppercase(), remotes.len());
         print_headers(&remotes);
+    } else {
+        println!("Remotely Pinging {} using protocol {} via {}", ping_args.host, ping_args.protocol.to_uppercase(), remotes[0].name);
     }
 
     run_event_loop(&remotes, streams, &ping_args).await;
