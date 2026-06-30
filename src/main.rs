@@ -3,6 +3,7 @@ mod formatter;
 mod icmp;
 mod ip;
 mod local;
+mod remote;
 mod server;
 mod stats;
 mod tcp;
@@ -10,6 +11,7 @@ mod tcp;
 use clap::Parser;
 use cli::{Cli, Commands};
 use local::run_local_ping;
+use remote::run_remote_ping;
 use server::run_server;
 
 #[tokio::main]
@@ -22,7 +24,7 @@ async fn main() {
             run_server(*port, token.clone()).await;
         }
         Some(Commands::Remote { config }) => {
-            println!("Starting Remote mode with file {}", config);
+            run_remote_ping(&cli, config).await;
         }
         None => {
             if let Some(target) = &cli.target {
