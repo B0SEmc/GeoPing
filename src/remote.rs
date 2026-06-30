@@ -37,8 +37,7 @@ fn load_remotes(config_path: &str) -> Vec<RemoteServer> {
     remotes
 }
 
-fn build_ping_args(cli: &Cli) -> PingArgs {
-    let target = cli.target.as_ref().expect("Target is required");
+fn build_ping_args(cli: &Cli, target: &str) -> PingArgs {
     let (host, parsed_port) = parse_target(target).unwrap_or_else(|e| {
         eprintln!("Error: {}", e);
         std::process::exit(1);
@@ -174,9 +173,10 @@ async fn run_event_loop(
     }
 }
 
-pub async fn run_remote_ping(cli: &Cli, config_path: &str) {
+pub async fn run_remote_ping(cli: &Cli, config_path: &str, target: &str) {
     let remotes = load_remotes(config_path);
-    let ping_args = build_ping_args(cli);
+    let ping_args = build_ping_args(cli, target);
+
 
     let client = Client::new();
     let streams = build_streams(&client, &remotes, &ping_args);

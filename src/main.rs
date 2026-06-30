@@ -23,8 +23,12 @@ async fn main() {
             println!("Starting Relay Server mode on port {}", port);
             run_server(*port, token.clone()).await;
         }
-        Some(Commands::Remote { config }) => {
-            run_remote_ping(&cli, config).await;
+        Some(Commands::Remote { config, target }) => {
+            if let Some(t) = target.as_ref().or(cli.target.as_ref()) {
+                run_remote_ping(&cli, config, t).await;
+            } else {
+                println!("Error: No target specified.\nUse 'geoping --help' to see available commands.");
+            }
         }
         None => {
             if let Some(target) = &cli.target {

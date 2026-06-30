@@ -39,6 +39,8 @@ pub enum Commands {
     Remote {
         #[arg(short, long, default_value = "config.toml")]
         config: String,
+
+        target: Option<String>,
     },
 }
 
