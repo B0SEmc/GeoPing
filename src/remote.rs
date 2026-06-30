@@ -98,6 +98,8 @@ async fn run_event_loop(
     ping_args: &PingArgs,
 ) {
     let is_single = remotes.len() == 1;
+    let mut all_durations: Vec<Vec<Option<std::time::Duration>>> = vec![Vec::new(); remotes.len()];
+    let start_time = std::time::Instant::now();
 
     loop {
         let mut futures = Vec::new();
@@ -116,6 +118,12 @@ async fn run_event_loop(
                         Some(Ok(Event::Message(msg))) => {
                             all_closed = false;
                             if let Ok(status) = serde_json::from_str::<PingStatus>(&msg.data) {
+                                let dur_opt = match &status {
+                                    PingStatus::Success { elapsed } => Some(*elapsed),
+                                    _ => None,
+                                };
+                                all_durations[i].push(dur_opt);
+
                                 if is_single {
                                     print_response(&PingResponse {
                                         ip: "127.0.0.1".parse().unwrap(),
@@ -148,6 +156,7 @@ async fn run_event_loop(
                             }
                         }
                         Some(Err(_)) => {
+                            all_durations[i].push(None);
                             if !is_single {
                                 row_output.push_str(&format!("{:<15} | ", "ConnErr"));
                             } else {
@@ -174,6 +183,16 @@ async fn run_event_loop(
                 break;
             }
         }
+    }
+
+    let total_time = start_time.elapsed();
+    for (i, remote) in remotes.iter().enumerate() {
+        let title = if is_single {
+            ping_args.host.clone()
+        } else {
+            format!("{} from {}", ping_args.host, remote.name)
+        };
+        crate::stats::print_stats(&title, &all_durations[i], total_time);
     }
 }
 

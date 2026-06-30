@@ -115,5 +115,5 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
     }
 
     let total_time = start_time.elapsed();
-    stats::print_stats(&config, &durations, total_time);
+    stats::print_stats(&config.host, &durations, total_time);
 }

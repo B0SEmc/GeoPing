@@ -1,4 +1,4 @@
-use crate::cli::PingArgs;
+
 use std::time::Duration;
 
 use crate::formatter::{
@@ -20,10 +20,10 @@ struct JitterStats {
     jitter: f64,
 }
 
-pub fn print_stats(config: &PingArgs, durations: &[Option<Duration>], total_time: Duration) {
+pub fn print_stats(title: &str, durations: &[Option<Duration>], total_time: Duration) {
     let transmitted = durations.len();
     if transmitted == 0 {
-        println!("\n--- {} ping statistics ---", config.host);
+        println!("\n--- {} ping statistics ---", title);
         println!("0 packets transmitted, 0 received");
         return;
     }
@@ -32,7 +32,7 @@ pub fn print_stats(config: &PingArgs, durations: &[Option<Duration>], total_time
     let loss = calc_loss(transmitted, received);
 
     print_summary(
-        config.host.as_str(),
+        title,
         transmitted,
         received,
         loss,
