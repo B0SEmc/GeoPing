@@ -39,9 +39,8 @@ pub enum Commands {
 #[derive(serde::Deserialize, Clone)]
 pub struct PingArgs {
     pub host: String,
-    pub port: u16,
+    pub port: Option<u16>,
     pub protocol: String,
     pub warmup: Option<usize>,
     pub count: Option<usize>,
-    pub silent: bool,
 }

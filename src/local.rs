@@ -1,9 +1,9 @@
 use crate::cli::{Cli, PingArgs};
+use crate::formatter::{PingResponse, PingStatus, print_response};
 use crate::icmp::ping_icmp;
 use crate::ip::parse_target;
 use crate::stats;
 use crate::tcp::ping_tcp;
-use crate::formatter::{print_response, PingResponse, PingStatus};
 
 pub async fn run_local_ping(cli: &Cli, target: &str) {
     let (host, parsed_port) = match parse_target(target) {
@@ -14,9 +14,9 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
         }
     };
     let port = if parsed_port != 0 {
-        parsed_port
+        Some(parsed_port)
     } else {
-        cli.port.unwrap_or(80)
+        Some(cli.port.unwrap_or(80))
     };
 
     let config = PingArgs {
@@ -25,7 +25,6 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
         protocol: cli.protocol.clone(),
         warmup: cli.warmup,
         count: None,
-        silent: false,
     };
 
     let mut ip_addr = None;
@@ -34,23 +33,37 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
     match config.protocol.as_str() {
         "icmp" => {
             let addrs = tokio::net::lookup_host(format!("{}:0", config.host)).await;
-            let ip = addrs.ok().and_then(|mut a| a.next()).map(|a| a.ip())
+            let ip = addrs
+                .ok()
+                .and_then(|mut a| a.next())
+                .map(|a| a.ip())
                 .unwrap_or_else(|| {
                     eprintln!("Error: Could not resolve host {}", config.host);
                     std::process::exit(1);
                 });
             ip_addr = Some(ip);
-            println!("Locally Pinging {} ({}) using protocol ICMP", config.host, ip);
+            println!(
+                "Locally Pinging {} ({}) using protocol ICMP",
+                config.host, ip
+            );
         }
         "tcp" => {
-            let addrs = tokio::net::lookup_host(format!("{}:{}", config.host, config.port)).await;
-            let sa = addrs.ok().and_then(|mut a| a.next())
-                .unwrap_or_else(|| {
-                    eprintln!("Error: Could not resolve host {}:{}", config.host, config.port);
-                    std::process::exit(1);
-                });
+            let addrs =
+                tokio::net::lookup_host(format!("{}:{}", config.host, config.port.unwrap_or(80)))
+                    .await;
+            let sa = addrs.ok().and_then(|mut a| a.next()).unwrap_or_else(|| {
+                eprintln!(
+                    "Error: Could not resolve host {}:{}",
+                    config.host,
+                    config.port.unwrap()
+                );
+                std::process::exit(1);
+            });
             socket_addr = Some(sa);
-            println!("Locally Pinging {} ({}) using protocol TCP", config.host, sa);
+            println!(
+                "Locally Pinging {} ({}) using protocol TCP",
+                config.host, sa
+            );
         }
         p => {
             eprintln!("Error: Unsupported protocol: {}", p);
@@ -63,10 +76,10 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
     let mut count = 0;
 
     loop {
-        if let Some(max) = config.count {
-            if count >= max {
-                break;
-            }
+        if let Some(max) = config.count
+            && count >= max
+        {
+            break;
         }
         count += 1;
 
@@ -83,14 +96,11 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
                     _ => None,
                 };
                 durations.push(dur_opt);
-
-                if !config.silent {
-                    print_response(&PingResponse {
-                        ip: ip_addr.unwrap_or_else(|| socket_addr.unwrap().ip()),
-                        port: if config.protocol == "tcp" { config.port } else { 0 },
-                        status,
-                    });
-                }
+                print_response(&PingResponse {
+                    ip: ip_addr.unwrap_or_else(|| socket_addr.unwrap().ip()),
+                    port: if config.protocol == "tcp" { config.port.unwrap_or(80) } else { 0 },
+                    status,
+                });
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             } => {}
             _ = tokio::signal::ctrl_c() => {

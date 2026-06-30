@@ -54,9 +54,11 @@ async fn handle_ping(
 
     let socket_addr = if config.protocol == "tcp" {
         if let Ok(ip) = config.host.parse::<std::net::IpAddr>() {
-            Some(std::net::SocketAddr::new(ip, config.port))
+            Some(std::net::SocketAddr::new(ip, config.port.unwrap_or(80)))
         } else {
-            match tokio::net::lookup_host(format!("{}:{}", config.host, config.port)).await {
+            match tokio::net::lookup_host(format!("{}:{}", config.host, config.port.unwrap_or(80)))
+                .await
+            {
                 Ok(mut addrs) => addrs.next(),
                 Err(_) => None,
             }
