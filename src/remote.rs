@@ -1,5 +1,5 @@
 use crate::cli::{Cli, PingArgs};
-use crate::formatter::{print_response, PingResponse, PingStatus};
+use crate::formatter::{PingResponse, PingStatus, print_response};
 use crate::ip::parse_target;
 use reqwest::Client;
 use reqwest_eventsource::Event;
@@ -43,7 +43,7 @@ fn build_ping_args(cli: &Cli) -> PingArgs {
         eprintln!("Error: {}", e);
         std::process::exit(1);
     });
-    
+
     let port = if parsed_port != 0 {
         parsed_port
     } else {
@@ -177,7 +177,7 @@ async fn run_event_loop(
 pub async fn run_remote_ping(cli: &Cli, config_path: &str) {
     let remotes = load_remotes(config_path);
     let ping_args = build_ping_args(cli);
-    
+
     let client = Client::new();
     let streams = build_streams(&client, &remotes, &ping_args);
 
