@@ -88,13 +88,8 @@ async fn handle_ping(
                 ping_icmp(ip_addr.unwrap()).await
             };
 
-            let dur_opt = match status {
-                crate::formatter::PingStatus::Success { elapsed } => Some(elapsed.as_secs_f64() * 1000.0),
-                _ => None,
-            };
-
             yield Event::default()
-                .json_data(dur_opt)
+                .json_data(&status)
                 .unwrap_or_else(|_| Event::default().data("error"));
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }

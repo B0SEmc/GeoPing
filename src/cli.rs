@@ -15,6 +15,12 @@ pub struct Cli {
     #[arg(short = 'w', long, default_value = "0")]
     pub warmup: Option<usize>,
 
+    #[arg(short = 'c', long)]
+    pub count: Option<usize>,
+
+    #[arg(short = 's', long)]
+    pub silent: bool,
+
     #[command(subcommand)]
     pub command: Option<Commands>,
 }
@@ -36,11 +42,13 @@ pub enum Commands {
     },
 }
 
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
 pub struct PingArgs {
     pub host: String,
     pub port: Option<u16>,
     pub protocol: String,
     pub warmup: Option<usize>,
     pub count: Option<usize>,
+    #[serde(default)]
+    pub silent: bool,
 }

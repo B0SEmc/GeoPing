@@ -24,7 +24,8 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
         port,
         protocol: cli.protocol.clone(),
         warmup: cli.warmup,
-        count: None,
+        count: cli.count,
+        silent: cli.silent,
     };
 
     let mut ip_addr = None;

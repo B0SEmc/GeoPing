@@ -17,7 +17,7 @@ pub const COLOR_BRIGHT_GREEN: &str = "\x1b[92m";
 pub const COLOR_BRIGHT_BLUE: &str = "\x1b[94m";
 pub const COLOR_BRIGHT_MAGENTA: &str = "\x1b[95m";
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum PingStatus {
     Success { elapsed: Duration },
     Timeout,
