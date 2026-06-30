@@ -21,6 +21,12 @@ pub struct Cli {
     #[arg(short = 's', long)]
     pub silent: bool,
 
+    #[arg(short = '4', long)]
+    pub ipv4: bool,
+
+    #[arg(short = '6', long)]
+    pub ipv6: bool,
+
     #[command(subcommand)]
     pub command: Option<Commands>,
 }
@@ -53,4 +59,8 @@ pub struct PingArgs {
     pub count: Option<usize>,
     #[serde(default)]
     pub silent: bool,
+    #[serde(default)]
+    pub ipv4: bool,
+    #[serde(default)]
+    pub ipv6: bool,
 }

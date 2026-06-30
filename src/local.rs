@@ -30,6 +30,8 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
         warmup: cli.warmup,
         count: cli.count,
         silent: cli.silent,
+        ipv4: cli.ipv4,
+        ipv6: cli.ipv6,
     };
 
     let mut ip_addr = None;

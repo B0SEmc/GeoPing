@@ -39,33 +39,15 @@ async fn handle_ping(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let ip_addr = if config.protocol == "icmp" {
-        if let Ok(ip) = config.host.parse::<std::net::IpAddr>() {
-            Some(ip)
-        } else {
-            match tokio::net::lookup_host(format!("{}:0", config.host)).await {
-                Ok(mut addrs) => addrs.next().map(|a| a.ip()),
-                Err(_) => None,
-            }
-        }
-    } else {
-        None
-    };
+    let sa = crate::ip::resolve_host(
+        &config.host,
+        config.port.unwrap_or(0),
+        config.ipv4,
+        config.ipv6,
+    ).await;
 
-    let socket_addr = if config.protocol == "tcp" {
-        if let Ok(ip) = config.host.parse::<std::net::IpAddr>() {
-            Some(std::net::SocketAddr::new(ip, config.port.unwrap_or(80)))
-        } else {
-            match tokio::net::lookup_host(format!("{}:{}", config.host, config.port.unwrap_or(80)))
-                .await
-            {
-                Ok(mut addrs) => addrs.next(),
-                Err(_) => None,
-            }
-        }
-    } else {
-        None
-    };
+    let ip_addr = sa.map(|s| s.ip());
+    let socket_addr = sa;
 
     if config.protocol == "icmp" && ip_addr.is_none() {
         return Err(StatusCode::BAD_REQUEST);
