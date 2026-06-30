@@ -43,7 +43,11 @@ fn build_ping_args(cli: &Cli, target: &str) -> PingArgs {
         std::process::exit(1);
     });
 
+    let mut protocol = cli.protocol.clone();
     let port = if parsed_port != 0 {
+        if protocol == "icmp" {
+            protocol = "tcp".to_string();
+        }
         parsed_port
     } else {
         cli.port.unwrap_or(80)
@@ -52,7 +56,7 @@ fn build_ping_args(cli: &Cli, target: &str) -> PingArgs {
     PingArgs {
         host,
         port: Some(port),
-        protocol: cli.protocol.clone(),
+        protocol,
         warmup: cli.warmup,
         count: cli.count,
         silent: cli.silent,

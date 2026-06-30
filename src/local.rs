@@ -13,7 +13,11 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
             std::process::exit(1);
         }
     };
+    let mut protocol = cli.protocol.clone();
     let port = if parsed_port != 0 {
+        if protocol == "icmp" {
+            protocol = "tcp".to_string();
+        }
         Some(parsed_port)
     } else {
         Some(cli.port.unwrap_or(80))
@@ -22,7 +26,7 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
     let config = PingArgs {
         host,
         port,
-        protocol: cli.protocol.clone(),
+        protocol,
         warmup: cli.warmup,
         count: cli.count,
         silent: cli.silent,
