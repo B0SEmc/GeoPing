@@ -29,8 +29,8 @@ pub enum Commands {
         #[arg(short = 't', long)]
         token: Option<String>,
     },
-    #[command(visible_aliases = ["distribute", "config", "m"])]
-    Multi {
+    #[command(visible_aliases = ["distribute", "config", "r"])]
+    Remote {
         #[arg(short, long, default_value = "config.toml")]
         config: String,
     },

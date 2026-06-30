@@ -21,8 +21,8 @@ async fn main() {
             println!("Starting Relay Server mode on port {}", port);
             run_server(*port, token.clone()).await;
         }
-        Some(Commands::Multi { config }) => {
-            println!("Starting Orchestrator mode with file {}", config);
+        Some(Commands::Remote { config }) => {
+            println!("Starting Remote mode with file {}", config);
         }
         None => {
             if let Some(target) = &cli.target {

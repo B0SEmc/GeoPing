@@ -12,3 +12,7 @@ serde_json = "*"
 surge-ping = "*"
 tokio-stream = "*"
 async-stream = "*"
+toml = "*"
+reqwest = { version = "*", features = ["stream", "json"] }
+reqwest-eventsource = "*"
+futures-util = "*"
