@@ -5,7 +5,6 @@ use tokio::net::UdpSocket;
 use tokio::time::timeout;
 
 pub async fn ping_udp(target: SocketAddr) -> PingStatus {
-    // Bind to an ephemeral port (let OS pick)
     let socket = match UdpSocket::bind("0.0.0.0:0").await {
         Ok(s) => s,
         Err(e) => return PingStatus::Error(e.to_string()),

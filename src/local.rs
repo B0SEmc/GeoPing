@@ -71,12 +71,26 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
             );
         }
         "udp" => {
-            let sa = crate::ip::resolve_host(&config.host, config.port.unwrap_or(80), config.ipv4, config.ipv6).await.unwrap_or_else(|| {
-                eprintln!("Error: Could not resolve host {}:{}", config.host, config.port.unwrap_or(80));
+            let sa = crate::ip::resolve_host(
+                &config.host,
+                config.port.unwrap_or(80),
+                config.ipv4,
+                config.ipv6,
+            )
+            .await
+            .unwrap_or_else(|| {
+                eprintln!(
+                    "Error: Could not resolve host {}:{}",
+                    config.host,
+                    config.port.unwrap_or(80)
+                );
                 std::process::exit(1);
             });
             socket_addr = Some(sa);
-            println!("Locally Pinging {} ({}) using protocol UDP", config.host, sa);
+            println!(
+                "Locally Pinging {} ({}) using protocol UDP",
+                config.host, sa
+            );
         }
         p => {
             eprintln!("Error: Unsupported protocol: {}", p);

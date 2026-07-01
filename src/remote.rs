@@ -44,6 +44,11 @@ fn build_ping_args(cli: &Cli, target: &str) -> PingArgs {
     });
 
     let mut protocol = cli.protocol.clone();
+    if protocol == "udp" {
+        eprintln!("Error: UDP protocol is only supported for local pings directly to a geoping server.");
+        std::process::exit(1);
+    }
+
     let port = if parsed_port != 0 {
         if protocol == "icmp" {
             protocol = "tcp".to_string();

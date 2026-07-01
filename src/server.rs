@@ -47,7 +47,7 @@ async fn handle_ping(
         }
     }
 
-    if config.protocol != "tcp" && config.protocol != "icmp" && config.protocol != "udp" {
+    if config.protocol != "tcp" && config.protocol != "icmp" {
         return Err(StatusCode::BAD_REQUEST);
     }
 
@@ -64,7 +64,7 @@ async fn handle_ping(
     if config.protocol == "icmp" && ip_addr.is_none() {
         return Err(StatusCode::BAD_REQUEST);
     }
-    if (config.protocol == "tcp" || config.protocol == "udp") && socket_addr.is_none() {
+    if config.protocol == "tcp" && socket_addr.is_none() {
         return Err(StatusCode::BAD_REQUEST);
     }
 
@@ -78,8 +78,6 @@ async fn handle_ping(
 
             let status = if config.protocol == "tcp" {
                 crate::tcp::ping_tcp(socket_addr.unwrap()).await
-            } else if config.protocol == "udp" {
-                crate::udp::ping_udp(socket_addr.unwrap()).await
             } else {
                 crate::icmp::ping_icmp(ip_addr.unwrap()).await
             };
