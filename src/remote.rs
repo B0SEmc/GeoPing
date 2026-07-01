@@ -7,11 +7,15 @@ use std::collections::HashMap;
 use std::fs;
 use tokio_stream::StreamExt;
 
+use crate::geo::{GeoLocation, fetch_location, estimate_location, calculate_distance};
+
 #[derive(serde::Deserialize, Debug)]
 pub struct RemoteServer {
     pub name: String,
     pub url: String,
     pub token: Option<String>,
+    #[serde(skip)]
+    pub location: Option<GeoLocation>,
 }
 
 fn load_remotes(config_path: &str) -> Vec<RemoteServer> {
@@ -221,19 +225,62 @@ async fn run_event_loop(
     }
 
     let total_time = start_time.elapsed();
+    let mut estimation_data = Vec::new();
+
     for (i, remote) in remotes.iter().enumerate() {
         let title = if is_single {
             ping_args.host.clone()
         } else {
-            format!("{} from {}", ping_args.host, remote.name)
+            let loc_str = if let Some(loc) = &remote.location {
+                format!("{} ({}, {})", remote.name, loc.city, loc.country_code)
+            } else {
+                remote.name.clone()
+            };
+            format!("{} from {}", ping_args.host, loc_str)
         };
         crate::stats::print_stats(&title, &all_durations[i], total_time);
+
+        if let Some(loc) = &remote.location {
+            let mut sum = std::time::Duration::from_secs(0);
+            let mut valid_count = 0;
+            for d in all_durations[i].iter().flatten() {
+                sum += *d;
+                valid_count += 1;
+            }
+            if valid_count > 0 {
+                let avg_rtt = sum / valid_count as u32;
+                estimation_data.push((loc.clone(), avg_rtt));
+                let dist = calculate_distance(avg_rtt);
+                println!("Relay: {} -> Avg: {:.2}ms -> Est. Distance: {:.0} km", title, avg_rtt.as_secs_f64() * 1000.0, dist);
+            }
+        }
+    }
+
+    if !estimation_data.is_empty() {
+        println!("\nGEO-ESTIMATION RESULTS:");
+        println!("{}", "-".repeat(50));
+        if let Some((est_lat, est_lon)) = estimate_location(&estimation_data) {
+            println!("=> Target Estimated Location: {:.4}, {:.4}", est_lat, est_lon);
+            println!("=> View on Map: https://maps.google.com/?q={:.4},{:.4}", est_lat, est_lon);
+        } else {
+            println!("=> Could not estimate location (insufficient data).");
+        }
     }
 }
 
 pub async fn run_remote_ping(cli: &Cli, config_path: &str, target: &str) {
-    let remotes = load_remotes(config_path);
+    let mut remotes = load_remotes(config_path);
     let ping_args = build_ping_args(cli, target);
+
+    let mut location_futures = Vec::new();
+    for remote in &remotes {
+        location_futures.push(fetch_location(&remote.url));
+    }
+    
+    let locations = futures_util::future::join_all(location_futures).await;
+    for (i, loc) in locations.into_iter().enumerate() {
+        remotes[i].location = loc;
+    }
 
 
     let client = Client::new();

@@ -8,6 +8,7 @@ pub mod server;
 pub mod stats;
 pub mod tcp;
 pub mod udp;
+pub mod geo;
 
 use clap::Parser;
 use cli::{Cli, Commands};
