@@ -64,6 +64,7 @@ fn build_ping_args(cli: &Cli, target: &str) -> PingArgs {
         protocol,
         warmup: cli.warmup,
         count: cli.count,
+        timeout: cli.timeout,
         silent: cli.silent,
         ipv4: cli.ipv4,
         ipv6: cli.ipv6,

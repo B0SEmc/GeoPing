@@ -27,6 +27,7 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
         protocol,
         warmup: cli.warmup,
         count: cli.count,
+        timeout: cli.timeout,
         silent: cli.silent,
         ipv4: cli.ipv4,
         ipv6: cli.ipv6,
@@ -101,14 +102,22 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
     let start_time = std::time::Instant::now();
     let mut durations: Vec<Option<std::time::Duration>> = Vec::new();
     let mut count = 0;
+    let mut warmup_count = 0;
 
     loop {
-        if let Some(max) = config.count
-            && count >= max
-        {
-            break;
+        let is_warmup = if let Some(w) = config.warmup {
+            warmup_count < w
+        } else {
+            false
+        };
+
+        if !is_warmup {
+            if let Some(max) = config.count {
+                if count >= max {
+                    break;
+                }
+            }
         }
-        count += 1;
 
         tokio::select! {
             _ = async {
@@ -120,17 +129,24 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
                     crate::icmp::ping_icmp(ip_addr.unwrap()).await
                 };
 
-                let dur_opt = match &status {
-                    PingStatus::Success { elapsed } => Some(*elapsed),
-                    _ => None,
-                };
-                durations.push(dur_opt);
-                print_response(&PingResponse {
-                    ip: ip_addr.unwrap_or_else(|| socket_addr.unwrap().ip()),
-                    port: if config.protocol == "tcp" { config.port.unwrap_or(80) } else { 0 },
-                    status,
-                });
-                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                if is_warmup {
+                    warmup_count += 1;
+                } else {
+                    count += 1;
+                    let dur_opt = match &status {
+                        PingStatus::Success { elapsed } => Some(*elapsed),
+                        _ => None,
+                    };
+                    durations.push(dur_opt);
+
+                    print_response(&PingResponse {
+                        ip: ip_addr.unwrap_or_else(|| socket_addr.unwrap().ip()),
+                        port: if config.protocol == "tcp" || config.protocol == "udp" { config.port.unwrap_or(80) } else { 0 },
+                        status,
+                    });
+                }
+
+                tokio::time::sleep(tokio::time::Duration::from_millis(config.timeout.unwrap_or(1000))).await;
             } => {}
             _ = tokio::signal::ctrl_c() => {
                 break;

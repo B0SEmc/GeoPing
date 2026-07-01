@@ -70,11 +70,21 @@ async fn handle_ping(
 
     let stream = async_stream::stream! {
         let mut count = 0;
+        let mut warmup_count = 0;
         loop {
-            if let Some(max) = config.count && count >= max {
-                break;
+            let is_warmup = if let Some(w) = config.warmup {
+                warmup_count < w
+            } else {
+                false
+            };
+
+            if !is_warmup {
+                if let Some(max) = config.count {
+                    if count >= max {
+                        break;
+                    }
+                }
             }
-            count += 1;
 
             let status = if config.protocol == "tcp" {
                 crate::tcp::ping_tcp(socket_addr.unwrap()).await
@@ -82,10 +92,15 @@ async fn handle_ping(
                 crate::icmp::ping_icmp(ip_addr.unwrap()).await
             };
 
-            yield Event::default()
-                .json_data(&status)
-                .unwrap_or_else(|_| Event::default().data("error"));
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            if is_warmup {
+                warmup_count += 1;
+            } else {
+                count += 1;
+                yield Event::default()
+                    .json_data(&status)
+                    .unwrap_or_else(|_| Event::default().data("error"));
+            }
+            tokio::time::sleep(tokio::time::Duration::from_millis(config.timeout.unwrap_or(1000))).await;
         }
     };
 

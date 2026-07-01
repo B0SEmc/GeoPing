@@ -18,6 +18,9 @@ pub struct Cli {
     #[arg(short = 'c', long)]
     pub count: Option<usize>,
 
+    #[arg(short = 't', long, default_value = "1000")]
+    pub timeout: Option<u64>,
+
     #[arg(short = 's', long)]
     pub silent: bool,
 
@@ -57,6 +60,7 @@ pub struct PingArgs {
     pub protocol: String,
     pub warmup: Option<usize>,
     pub count: Option<usize>,
+    pub timeout: Option<u64>,
     #[serde(default)]
     pub silent: bool,
     #[serde(default)]
