@@ -1,9 +1,7 @@
 use crate::cli::{Cli, PingArgs};
 use crate::formatter::{PingResponse, PingStatus, print_response};
-use crate::icmp::ping_icmp;
 use crate::ip::parse_target;
 use crate::stats;
-use crate::tcp::ping_tcp;
 
 pub async fn run_local_ping(cli: &Cli, target: &str) {
     let (host, parsed_port) = match parse_target(target) {
@@ -72,6 +70,14 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
                 config.host, sa
             );
         }
+        "udp" => {
+            let sa = crate::ip::resolve_host(&config.host, config.port.unwrap_or(80), config.ipv4, config.ipv6).await.unwrap_or_else(|| {
+                eprintln!("Error: Could not resolve host {}:{}", config.host, config.port.unwrap_or(80));
+                std::process::exit(1);
+            });
+            socket_addr = Some(sa);
+            println!("Locally Pinging {} ({}) using protocol UDP", config.host, sa);
+        }
         p => {
             eprintln!("Error: Unsupported protocol: {}", p);
             std::process::exit(1);
@@ -93,9 +99,11 @@ pub async fn run_local_ping(cli: &Cli, target: &str) {
         tokio::select! {
             _ = async {
                 let status = if config.protocol == "tcp" {
-                    ping_tcp(socket_addr.unwrap()).await
+                    crate::tcp::ping_tcp(socket_addr.unwrap()).await
+                } else if config.protocol == "udp" {
+                    crate::udp::ping_udp(socket_addr.unwrap()).await
                 } else {
-                    ping_icmp(ip_addr.unwrap()).await
+                    crate::icmp::ping_icmp(ip_addr.unwrap()).await
                 };
 
                 let dur_opt = match &status {

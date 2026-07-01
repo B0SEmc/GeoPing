@@ -1,5 +1,5 @@
 use crate::cli::PingArgs;
-use crate::{icmp::ping_icmp, tcp::ping_tcp};
+
 use axum::http::HeaderMap;
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
 use std::convert::Infallible;
@@ -12,10 +12,22 @@ pub async fn run_server(port: u16, token: Option<String>) {
         .route("/ping", post(handle_ping))
         .with_state(token);
 
+    let udp_port = port;
+    tokio::spawn(async move {
+        if let Ok(listener) = tokio::net::UdpSocket::bind(format!("0.0.0.0:{}", udp_port)).await {
+            let mut buf = [0; 1024];
+            loop {
+                if let Ok((len, addr)) = listener.recv_from(&mut buf).await {
+                    let _ = listener.send_to(&buf[..len], addr).await;
+                }
+            }
+        }
+    });
+
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
         .await
         .unwrap();
-    println!("Relay Server listening on port {}", port);
+    println!("Relay Server listening on port {} (TCP/UDP)", port);
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -35,7 +47,7 @@ async fn handle_ping(
         }
     }
 
-    if config.protocol != "tcp" && config.protocol != "icmp" {
+    if config.protocol != "tcp" && config.protocol != "icmp" && config.protocol != "udp" {
         return Err(StatusCode::BAD_REQUEST);
     }
 
@@ -52,7 +64,7 @@ async fn handle_ping(
     if config.protocol == "icmp" && ip_addr.is_none() {
         return Err(StatusCode::BAD_REQUEST);
     }
-    if config.protocol == "tcp" && socket_addr.is_none() {
+    if (config.protocol == "tcp" || config.protocol == "udp") && socket_addr.is_none() {
         return Err(StatusCode::BAD_REQUEST);
     }
 
@@ -65,9 +77,11 @@ async fn handle_ping(
             count += 1;
 
             let status = if config.protocol == "tcp" {
-                ping_tcp(socket_addr.unwrap()).await
+                crate::tcp::ping_tcp(socket_addr.unwrap()).await
+            } else if config.protocol == "udp" {
+                crate::udp::ping_udp(socket_addr.unwrap()).await
             } else {
-                ping_icmp(ip_addr.unwrap()).await
+                crate::icmp::ping_icmp(ip_addr.unwrap()).await
             };
 
             yield Event::default()

@@ -4,9 +4,10 @@ mod icmp;
 mod ip;
 mod local;
 mod remote;
-mod server;
-mod stats;
-mod tcp;
+pub mod server;
+pub mod stats;
+pub mod tcp;
+pub mod udp;
 
 use clap::Parser;
 use cli::{Cli, Commands};
