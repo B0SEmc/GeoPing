@@ -56,7 +56,8 @@ async fn handle_ping(
         config.port.unwrap_or(0),
         config.ipv4,
         config.ipv6,
-    ).await;
+    )
+    .await;
 
     let ip_addr = sa.map(|s| s.ip());
     let socket_addr = sa;
@@ -68,6 +69,14 @@ async fn handle_ping(
         return Err(StatusCode::BAD_REQUEST);
     }
 
+    Ok(Sse::new(generate_ping_stream(config, ip_addr, socket_addr)))
+}
+
+fn generate_ping_stream(
+    config: PingArgs,
+    ip_addr: Option<std::net::IpAddr>,
+    socket_addr: Option<std::net::SocketAddr>,
+) -> impl tokio_stream::Stream<Item = Result<Event, Infallible>> {
     let stream = async_stream::stream! {
         let mut count = 0;
         let mut warmup_count = 0;
@@ -78,12 +87,8 @@ async fn handle_ping(
                 false
             };
 
-            if !is_warmup {
-                if let Some(max) = config.count {
-                    if count >= max {
-                        break;
-                    }
-                }
+            if !is_warmup && config.count.is_some_and(|max| count >= max) {
+                break;
             }
 
             let status = if config.protocol == "tcp" {
@@ -104,5 +109,5 @@ async fn handle_ping(
         }
     };
 
-    Ok(Sse::new(stream.map(Ok::<_, Infallible>)))
+    stream.map(Ok::<_, Infallible>)
 }

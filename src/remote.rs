@@ -100,6 +100,76 @@ fn print_headers(remotes: &[RemoteServer]) {
     println!("{}", "-".repeat(header.len()));
 }
 
+fn process_sse_event(
+    result: Option<Result<Event, reqwest_eventsource::Error>>,
+    remote: &RemoteServer,
+    ping_args: &PingArgs,
+    is_single: bool,
+) -> (Option<String>, Option<Option<std::time::Duration>>, bool) {
+    let mut row_output = None;
+    let mut dur_to_push = None;
+    let mut is_closed = false;
+
+    match result {
+        Some(Ok(Event::Message(msg))) => {
+            if let Ok(status) = serde_json::from_str::<PingStatus>(&msg.data) {
+                let dur_opt = match &status {
+                    PingStatus::Success { elapsed } => Some(*elapsed),
+                    _ => None,
+                };
+                dur_to_push = Some(dur_opt);
+
+                if is_single {
+                    print_response(&PingResponse {
+                        ip: "127.0.0.1".parse().unwrap(),
+                        port: ping_args.port.unwrap_or(80),
+                        status,
+                    });
+                } else {
+                    let text = match status {
+                        PingStatus::Success { elapsed } => format!("{:.2}ms", elapsed.as_secs_f64() * 1000.0),
+                        PingStatus::Timeout => "Timeout".to_string(),
+                        PingStatus::Error(_) => "Error".to_string(),
+                    };
+                    row_output = Some(format!("{:<15} | ", text));
+                }
+            } else {
+                if !is_single {
+                    row_output = Some(format!("{:<15} | ", "ParseErr"));
+                }
+            }
+        }
+        Some(Ok(Event::Open)) => {
+            if !is_single {
+                row_output = Some(format!("{:<15} | ", "Connected"));
+            }
+        }
+        Some(Err(reqwest_eventsource::Error::StreamEnded)) => {
+            is_closed = true;
+            if !is_single {
+                row_output = Some(format!("{:<15} | ", "Ended"));
+            }
+        }
+        Some(Err(_)) => {
+            is_closed = true;
+            dur_to_push = Some(None);
+            if !is_single {
+                row_output = Some(format!("{:<15} | ", "ConnErr"));
+            } else {
+                eprintln!("Connection error with remote {}", remote.name);
+            }
+        }
+        None => {
+            is_closed = true;
+            if !is_single {
+                row_output = Some(format!("{:<15} | ", "Closed"));
+            }
+        }
+    }
+
+    (row_output, dur_to_push, is_closed)
+}
+
 async fn run_event_loop(
     remotes: &[RemoteServer],
     mut streams: Vec<reqwest_eventsource::EventSource>,
@@ -121,61 +191,18 @@ async fn run_event_loop(
                 let mut row_output = String::new();
 
                 for (i, result) in results.into_iter().enumerate() {
-                    let remote = &remotes[i];
-                    match result {
-                        Some(Ok(Event::Message(msg))) => {
-                            all_closed = false;
-                            if let Ok(status) = serde_json::from_str::<PingStatus>(&msg.data) {
-                                let dur_opt = match &status {
-                                    PingStatus::Success { elapsed } => Some(*elapsed),
-                                    _ => None,
-                                };
-                                all_durations[i].push(dur_opt);
+                    let (text_opt, dur_opt, is_closed) = process_sse_event(result, &remotes[i], ping_args, is_single);
 
-                                if is_single {
-                                    print_response(&PingResponse {
-                                        ip: "127.0.0.1".parse().unwrap(),
-                                        port: ping_args.port.unwrap_or(80),
-                                        status,
-                                    });
-                                } else {
-                                    let text = match status {
-                                        PingStatus::Success { elapsed } => format!("{:.2}ms", elapsed.as_secs_f64() * 1000.0),
-                                        PingStatus::Timeout => "Timeout".to_string(),
-                                        PingStatus::Error(_) => "Error".to_string(),
-                                    };
-                                    row_output.push_str(&format!("{:<15} | ", text));
-                                }
-                            } else {
-                                if !is_single {
-                                    row_output.push_str(&format!("{:<15} | ", "ParseErr"));
-                                }
-                            }
-                        }
-                        Some(Ok(Event::Open)) => {
-                            all_closed = false;
-                            if !is_single {
-                                row_output.push_str(&format!("{:<15} | ", "Connected"));
-                            }
-                        }
-                        Some(Err(reqwest_eventsource::Error::StreamEnded)) => {
-                            if !is_single {
-                                row_output.push_str(&format!("{:<15} | ", "Ended"));
-                            }
-                        }
-                        Some(Err(_)) => {
-                            all_durations[i].push(None);
-                            if !is_single {
-                                row_output.push_str(&format!("{:<15} | ", "ConnErr"));
-                            } else {
-                                eprintln!("Connection error with remote {}", remote.name);
-                            }
-                        }
-                        None => {
-                            if !is_single {
-                                row_output.push_str(&format!("{:<15} | ", "Closed"));
-                            }
-                        }
+                    if !is_closed {
+                        all_closed = false;
+                    }
+
+                    if let Some(text) = text_opt {
+                        row_output.push_str(&text);
+                    }
+
+                    if let Some(dur) = dur_opt {
+                        all_durations[i].push(dur);
                     }
                 }
 
